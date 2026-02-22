@@ -1,61 +1,67 @@
+import { useState } from "react";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
-import { Transaction, SystemProgram, LAMPORTS_PER_SOL, PublicKey } from "@solana/web3.js";
-export function SendTokens() {
+import { sendSol } from "../services/solanaService";
+import { Card, Button, Input } from "./UI";
 
+export function SendTokens() {
     const { connection } = useConnection();
     const wallet = useWallet();
+    const [recipient, setRecipient] = useState("");
+    const [amount, setAmount] = useState("");
+    const [loading, setLoading] = useState(false);
 
-    async function sendTokens() {
-        if (!wallet.connected) {
+    async function handleSend() {
+        if (!wallet.publicKey) {
             alert("Please connect your wallet first.");
             return;
         }
-        if (!wallet.publicKey) {
-            alert("Wallet public key is not available.");
-            return;
-        }
 
-        const recipient = document.getElementById("recipient").value;
-        const amount = document.getElementById("amount").value;
-
-        if (!recipient || !amount || isNaN(amount) || amount <= 0) {
+        if (!recipient || !amount || parseFloat(amount) <= 0) {
             alert("Please enter a valid recipient address and amount.");
             return;
         }
 
-        // creating a transaction object
-        // to transfer SOL from the sender's wallet to the recipient's wallet
-        // single transaction can have multiple instructions
-        // here we are using SystemProgram.transfer to transfer SOL
-        const transation = new Transaction();
-
-        transation.add(
-            // Importing SystemProgram from @solana/web3.js
-            // to create a transfer instruction
-            SystemProgram.transfer({
-                fromPubkey: wallet.publicKey,
-                toPubkey: new PublicKey(recipient),
-                lamports: amount * LAMPORTS_PER_SOL,
-            })
-        );
-
-        await wallet.sendTransaction(transation, connection)
-            .then(() => {
-                alert(`Sent ${amount} SOL to ${recipient} successfully.`);
-            })
-            .catch((error) => {
-                console.error("Transaction failed:", error);
-                alert("Transaction failed. Please try again.");
-            });
+        setLoading(true);
+        try {
+            const signature = await sendSol(connection, wallet, recipient, parseFloat(amount));
+            alert(`Successfully sent ${amount} SOL! \nSignature: ${signature}`);
+            setRecipient("");
+            setAmount("");
+        } catch (error) {
+            console.error("Transfer failed:", error);
+            alert("Transfer failed. Please check the address and your balance.");
+        } finally {
+            setLoading(false);
+        }
     }
 
     return (
-        <div className="space-y-2 flex flex-col items-center border p-4 rounded-md bg-white shadow-lg">
-            <p className="text-xl font-semibold">Send Tokens</p>
-            <input className="border rounded text-center" id="recipient" type="text" placeholder="Recipient Address" />
-            <input className="border rounded text-center" id="amount" type="text" placeholder="Amount in SOL" />
-            <button className="bg-violet-800 hover:bg-violet-600 text-white font-bold py-2 px-4 rounded cursor-pointer"
-                onClick={sendTokens}>Send Tokens</button>
-        </div>
+        <Card title="Send SOL">
+            <div className="space-y-4">
+                <div className="flex flex-col gap-1">
+                    <label className="text-sm font-medium text-text-dim px-1">Recipient Address</label>
+                    <Input
+                        placeholder="Recipient Public Key"
+                        value={recipient}
+                        onChange={(e) => setRecipient(e.target.value)}
+                    />
+                </div>
+                <div className="flex flex-col gap-1">
+                    <label className="text-sm font-medium text-text-dim px-1">Amount (SOL)</label>
+                    <Input
+                        placeholder="0.1"
+                        value={amount}
+                        onChange={(e) => setAmount(e.target.value)}
+                    />
+                </div>
+                <Button
+                    onClick={handleSend}
+                    loading={loading}
+                    className="w-full"
+                >
+                    Send Tokens
+                </Button>
+            </div>
+        </Card>
     );
 }

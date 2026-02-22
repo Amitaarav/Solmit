@@ -1,43 +1,61 @@
+import { useState } from "react";
 import { useWallet, useConnection } from "@solana/wallet-adapter-react";
-import { Connection, LAMPORTS_PER_SOL } from "@solana/web3.js";
-export const RequestAirDrop = () => {
+import { requestAirdrop } from "../services/solanaService";
+import { Card, Button, Input } from "./UI";
 
-    const  wallet  = useWallet();
-    const { connection }= useConnection();
-    function requestAirdrop() {
-        
-        if (!wallet.connected) {
+export const RequestAirDrop = () => {
+    const { publicKey } = useWallet();
+    const { connection } = useConnection();
+    const [amount, setAmount] = useState("");
+    const [loading, setLoading] = useState(false);
+
+    async function handleAirdrop() {
+        if (!publicKey) {
             alert("Please connect your wallet first.");
             return;
         }
-        if (!wallet.publicKey) {
-            alert("Wallet public key is not available.");
-            return;
-        }
 
-        const publicKey = wallet.publicKey;
-        const amount = document.getElementById("amount").value;
-        if (!amount || isNaN(amount) || amount <= 0) {
+        const solAmount = parseFloat(amount);
+        if (!solAmount || solAmount <= 0) {
             alert("Please enter a valid amount.");
             return;
         }
 
-        connection.requestAirdrop( publicKey, amount * LAMPORTS_PER_SOL);
-
+        setLoading(true);
+        try {
+            await requestAirdrop(connection, publicKey, solAmount);
+            alert(`Success! Requested ${solAmount} SOL airdrop.`);
+            setAmount("");
+        } catch (error) {
+            console.error("Airdrop failed:", error);
+            alert("Airdrop failed. Devnet faucet might be empty or ratelimited.");
+        } finally {
+            setLoading(false);
+        }
     }
 
-    return(
-        <div className="border p-4 rounded-md bg-white shadow-lg space-y-2 flex flex-col items-center">
-            <p className="text-xl font-semibold">
-                Hii Mr.
-            </p>
-            <p className="text-lg text-gray-600 p-2">
-                Your wallet address is: {wallet.publicKey ? wallet.publicKey.toBase58() : "Not connected"}
-            </p>
-            <label className="font-semibold" htmlFor="">Amount</label>
-            <input className="border rounded text-center " id="amount" type="text" placeholder="Enter Amount" />
-            <button className="bg-violet-800 hover:bg-violet-600 text-white font-bold py-2 px-4 rounded cursor-pointer"
-            onClick={requestAirdrop} >Request AirDrop</button>
-        </div>
-    )
-}
+    return (
+        <Card title="Request Airdrop">
+            <div className="space-y-4">
+                <div className="flex flex-col gap-1">
+                    <label className="text-sm font-medium text-text-dim px-1">Amount (SOL)</label>
+                    <Input
+                        placeholder="0.5"
+                        value={amount}
+                        onChange={(e) => setAmount(e.target.value)}
+                    />
+                </div>
+                <Button
+                    onClick={handleAirdrop}
+                    loading={loading}
+                    className="w-full"
+                >
+                    Request SOL
+                </Button>
+                <p className="text-xs text-text-dim text-center italic">
+                    Only works on Solana Devnet
+                </p>
+            </div>
+        </Card>
+    );
+};
