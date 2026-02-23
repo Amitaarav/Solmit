@@ -36,7 +36,7 @@ export async function requestAirdrop(connection, publicKey, amount) {
  */
 export async function sendSol(connection, wallet, recipientStr, amount) {
   if (!wallet.publicKey) throw new Error("Wallet not connected");
-  
+
   const recipient = new PublicKey(recipientStr);
   const transaction = new Transaction().add(
     SystemProgram.transfer({
@@ -64,8 +64,40 @@ export async function signAndVerify(wallet, message) {
 
   const encodedMessage = new TextEncoder().encode(message);
   const signature = await wallet.signMessage(encodedMessage);
-  
+
   const isValid = ed25519.verify(signature, encodedMessage, wallet.publicKey.toBytes());
-  
+
   return { signature, isValid };
+}
+
+/**
+ * Fetches the current SOL price in USD
+ * @returns {Promise<number>} SOL price in USD
+ */
+export async function getSolPrice() {
+  try {
+    const response = await fetch("https://api.coingecko.com/api/v3/simple/price?ids=solana&vs_currencies=usd");
+    const data = await response.json();
+    return data.solana.usd;
+  } catch (error) {
+    console.error("Failed to fetch SOL price:", error);
+    return 0;
+  }
+}
+/**
+ * Fetches recent transaction signatures for a public key
+ * @param {Connection} connection 
+ * @param {PublicKey} publicKey 
+ * @param {number} limit 
+ * @returns {Promise<Array>} List of signatures with timestamps
+ */
+export async function getTransactions(connection, publicKey, limit = 5) {
+  if (!publicKey) return [];
+  try {
+    const signatures = await connection.getSignaturesForAddress(publicKey, { limit });
+    return signatures;
+  } catch (error) {
+    console.error("Failed to fetch transactions:", error);
+    return [];
+  }
 }

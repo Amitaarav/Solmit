@@ -4,12 +4,13 @@ SolBridge is a high-performance, visually stunning Solana Web3 dashboard. Transf
 
 ## 🚀 Features
 
-- **Wallet Integration**: Seamless connection via `@solana/wallet-adapter`.
-- **Real-time Balance**: Check Devnet SOL balance with instant refresh.
-- **Airdrop Portal**: Request test SOL directly to your connected wallet.
-- **Secure Transfers**: Transfer SOL to any valid public key with transaction confirmation.
-- **Message Signing**: Cryptographically sign and verify messages using Ed25519.
-- **Premium UI**: Dark-mode-first design with smooth gradients and tactile feedback.
+- **Multi-Network Support**: Seamlessly switch between **Mainnet-beta** and **Devnet**.
+- **Real-time Price Feed**: Live SOL/USD price conversion via CoinGecko API.
+- **Pulse Activity Feed**: On-chain transaction history with real-time status tracking.
+- **Jupiter Swap**: Deep DEX integration for token swaps (Powered by Jupiter).
+- **Wallet Integration**: Unified connection via `@solana/wallet-adapter`.
+- **Enhanced Feedback**: Real-time asynchronous status updates via **React Hot Toast**.
+- **Premium UI**: Glassmorphism aesthetic with floating animations and vibrant gradients.
 
 ---
 
@@ -20,30 +21,36 @@ The application follows a modular "Service-Feature-UI" pattern to ensure maintai
 
 ```mermaid
 graph TD
-    User((User)) -->|Interacts| UI[Feature Components]
-    UI -->|Uses| Hooks[Solana React Hooks]
-    UI -->|Calls| Service[Solana Service Layer]
-    Service -->|Requests| RPC[Solana Devnet RPC]
-    RPC -->|Responds| Service
-    Service -->|Updates| State[React State]
-    State -->|Re-renders| UI
-    UI -->|Displays| User
+    User((User)) -->|Switch Network| Net[NetworkSwitcher]
+    Net -->|Updates| GlobalState[Global Network State]
+    User -->|Transaction| UI[Feature Components]
+    UI -->|API Request| Coingecko[CoinGecko Pricing]
+    UI -->|Blockchain Call| Service[Solana Service Layer]
+    Service -->|Dynamic RPC| RPC[Mainnet/Devnet RPC]
+    RPC -->|Events| UI
+    UI -->|Async Feedback| Toast[React Hot Toast]
 ```
 
 ### Component Graph
 ```mermaid
 graph LR
-    App[App.jsx] --> Provider[Providers Container]
-    Provider --> Nav[Navigation/Header]
-    Provider --> FeatureGrid[Features Grid]
+    App[App.jsx] --> NetState[Network Context]
+    NetState --> Nav[Top Navigation]
+    Nav --> Switcher[NetworkSwitcher]
     
-    FeatureGrid --> Bal[ShowBalance]
-    FeatureGrid --> Air[RequestAirdrop]
-    FeatureGrid --> Send[SendTokens]
-    FeatureGrid --> Sign[SignMessage]
+    App --> Main[Main Content Grid]
+    Main --> Left[Portfolio Column]
+    Main --> Right[Utilities Column]
     
-    Bal & Air & Send & Sign --> UI_Lib[UI Primitives: Button, Card, Input]
-    Bal & Air & Send & Sign --> Sol_Svc[SolanaService.js]
+    Left --> Bal[ShowBalance]
+    Left --> Air[RequestAirdrop]
+    Left --> Feed[ActivityFeed]
+    
+    Right --> Swap[Jupiter Swap]
+    Right --> Send[SendTokens]
+    Right --> Sign[SignMessage]
+    
+    All --> Toast[Hot Toasts]
 ```
 
 ---
@@ -53,16 +60,18 @@ graph LR
 ```text
 src/
 ├── components/
-│   ├── UI.jsx            # Reusable UI primitives (Card, Button, Input)
-│   ├── ShowBalance.jsx   # Wallet balance logic & UI
-│   ├── RequestAirdrop.jsx# Devnet faucet interaction
-│   ├── SendTokens.jsx    # Token transfer module
-│   └── SignMessage.jsx   # Cryptographic signing module
+│   ├── UI.jsx              # Reusable UI primitives (Card, Button, Input)
+│   ├── NetworkSwitcher.jsx # Multi-cluster selector
+│   ├── ShowBalance.jsx     # Balance & Pricing logic
+│   ├── ActivityFeed.jsx    # Real-time transaction history
+│   ├── RequestAirdrop.jsx  # Network-aware Devnet faucet
+│   ├── SendTokens.jsx      # Polished transfer hub
+│   ├── Swap.jsx            # Jupiter Terminal integration
+│   └── SignMessage.jsx     # Security Signer module
 ├── services/
-│   └── solanaService.js  # Centralized Solana RPC & interaction logic
-├── App.jsx               # Root layout & Provider orchestration
-├── App.css               # Base Tailwind imports
-└── index.css             # Design system & Premium styles
+│   └── solanaService.js    # Data fetching & Blockchain logic
+├── App.jsx                 # Global state & Layout Nexus
+└── index.css               # Design system & Design Tokens
 ```
 
 ---
@@ -70,10 +79,12 @@ src/
 ## 🛠️ Tech Stack
 
 - **React 19** & **Vite**
-- **Tailwind CSS 4** (Modern Design)
-- **Solana Web3.js** (Blockchain Interaction)
-- **@solana/wallet-adapter** (Wallet connection)
-- **@noble/curves** (Cryptographic verification)
+- **Tailwind CSS 4**
+- **Solana Web3.js**
+- **Jupiter SDK** (Token Swaps)
+- **CoinGecko API** (Pricing)
+- **React Hot Toast** (UX)
+- **@noble/curves** (Cryptography)
 
 ---
 

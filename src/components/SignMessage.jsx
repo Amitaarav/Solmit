@@ -4,6 +4,8 @@ import bs58 from 'bs58';
 import { signAndVerify } from "../services/solanaService";
 import { Card, Button, Input } from "./UI";
 
+import toast from "react-hot-toast";
+
 export function SignMessage() {
     const wallet = useWallet();
     const [message, setMessage] = useState("");
@@ -12,15 +14,16 @@ export function SignMessage() {
 
     async function handleSign() {
         if (!wallet.publicKey || !wallet.signMessage) {
-            alert("Please connect a wallet that supports message signing.");
+            toast.error("Please connect a wallet that supports message signing.");
             return;
         }
 
         if (!message) {
-            alert("Please enter a message to sign.");
+            toast.error("Please enter a message to sign.");
             return;
         }
 
+        const toastId = toast.loading("Signing message...");
         setLoading(true);
         setStatus(null);
         try {
@@ -28,15 +31,18 @@ export function SignMessage() {
             const signatureStr = bs58.encode(signature);
 
             if (isValid) {
+                toast.success("Message signed & verified!", { id: toastId });
                 setStatus({
                     type: 'success',
                     msg: `Message signed & verified!\nSig: ${signatureStr.slice(0, 10)}...`
                 });
             } else {
+                toast.error("Verification failed.", { id: toastId });
                 setStatus({ type: 'error', msg: "Verification failed." });
             }
         } catch (error) {
             console.error("Signing failed:", error);
+            toast.error("Signing failed. Please try again.", { id: toastId });
             setStatus({ type: 'error', msg: "Signing failed. Please try again." });
         } finally {
             setLoading(false);
@@ -44,13 +50,14 @@ export function SignMessage() {
     }
 
     return (
-        <Card title="Sign Message">
-            <div className="space-y-4">
-                <div className="flex flex-col gap-1">
-                    <label className="text-sm font-medium text-text-dim px-1">Message</label>
+        <Card title="Security Signer">
+            <div className="space-y-6">
+                <div className="flex flex-col gap-2">
+                    <label className="text-[10px] font-black uppercase tracking-[0.2em] text-text-dim opacity-70 px-1">Message to Sign</label>
                     <Input
-                        placeholder="Enter message to sign"
+                        placeholder="e.g. Authenticate my session"
                         value={message}
+                        className="!mb-0"
                         onChange={(e) => setMessage(e.target.value)}
                     />
                 </div>
@@ -59,15 +66,19 @@ export function SignMessage() {
                     loading={loading}
                     className="w-full"
                 >
-                    Sign & Verify
+                    Sign & Validate
                 </Button>
 
                 {status && (
-                    <div className={`p-3 rounded-lg text-sm border ${status.type === 'success'
-                            ? 'bg-green-500/10 border-green-500/30 text-green-400'
-                            : 'bg-red-500/10 border-red-500/30 text-red-400'
+                    <div className={`p-4 rounded-2xl text-xs font-medium border animate-in fade-in slide-in-from-top-2 duration-300 ${status.type === 'success'
+                            ? 'bg-solana-green/10 border-solana-green/20 text-solana-green'
+                            : 'bg-red-500/10 border-red-500/20 text-red-400'
                         }`}>
-                        {status.msg}
+                        <div className="flex items-center gap-2 mb-1">
+                            <div className={`w-1.5 h-1.5 rounded-full ${status.type === 'success' ? 'bg-solana-green' : 'bg-red-500'}`} />
+                            <span className="font-black uppercase tracking-widest">{status.type === 'success' ? 'Verified' : 'Failed'}</span>
+                        </div>
+                        <p className="opacity-80 leading-relaxed font-mono break-all">{status.msg}</p>
                     </div>
                 )}
             </div>

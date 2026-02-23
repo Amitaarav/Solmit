@@ -3,7 +3,9 @@ import { useWallet, useConnection } from "@solana/wallet-adapter-react";
 import { requestAirdrop } from "../services/solanaService";
 import { Card, Button, Input } from "./UI";
 
-export const RequestAirDrop = () => {
+import toast from "react-hot-toast";
+
+export const RequestAirDrop = ({ network }) => {
     const { publicKey } = useWallet();
     const { connection } = useConnection();
     const [amount, setAmount] = useState("");
@@ -11,37 +13,41 @@ export const RequestAirDrop = () => {
 
     async function handleAirdrop() {
         if (!publicKey) {
-            alert("Please connect your wallet first.");
+            toast.error("Please connect your wallet first.");
             return;
         }
 
         const solAmount = parseFloat(amount);
         if (!solAmount || solAmount <= 0) {
-            alert("Please enter a valid amount.");
+            toast.error("Please enter a valid amount.");
             return;
         }
 
+        const toastId = toast.loading(`Requesting ${solAmount} SOL airdrop...`);
         setLoading(true);
         try {
             await requestAirdrop(connection, publicKey, solAmount);
-            alert(`Success! Requested ${solAmount} SOL airdrop.`);
+            toast.success(`Success! Received ${solAmount} SOL.`, { id: toastId });
             setAmount("");
         } catch (error) {
             console.error("Airdrop failed:", error);
-            alert("Airdrop failed. Devnet faucet might be empty or ratelimited.");
+            toast.error("Airdrop failed. Devnet faucet might be empty or ratelimited.", { id: toastId });
         } finally {
             setLoading(false);
         }
     }
 
+    if (network.cluster !== 'devnet') return null;
+
     return (
-        <Card title="Request Airdrop">
-            <div className="space-y-4">
-                <div className="flex flex-col gap-1">
-                    <label className="text-sm font-medium text-text-dim px-1">Amount (SOL)</label>
+        <Card title="Devnet Faucet">
+            <div className="space-y-6">
+                <div className="flex flex-col gap-2">
+                    <label className="text-[10px] font-black uppercase tracking-[0.2em] text-text-dim opacity-70 px-1">Amount (SOL)</label>
                     <Input
                         placeholder="0.5"
                         value={amount}
+                        className="!mb-0"
                         onChange={(e) => setAmount(e.target.value)}
                     />
                 </div>
@@ -50,11 +56,11 @@ export const RequestAirDrop = () => {
                     loading={loading}
                     className="w-full"
                 >
-                    Request SOL
+                    Request Drop
                 </Button>
-                <p className="text-xs text-text-dim text-center italic">
-                    Only works on Solana Devnet
-                </p>
+                <div className="flex items-center gap-2 justify-center py-2 px-4 rounded-xl bg-solana-blue/5 border border-solana-blue/10">
+                    <span className="text-[10px] text-solana-blue font-bold uppercase tracking-widest leading-none">Devnet Only</span>
+                </div>
             </div>
         </Card>
     );
