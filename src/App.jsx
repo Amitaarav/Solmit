@@ -73,7 +73,7 @@ function App() {
 
               {/* Send & Sign - Right Column */}
               <div className="lg:col-span-7 space-y-8">
-                {/* <Swap network={network} /> */}
+                <Swap network={network} />
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-1 gap-8">
                   <SendTokens />
                   <SignMessage />
