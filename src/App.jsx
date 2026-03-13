@@ -29,7 +29,7 @@ function App() {
             <nav className="flex items-center justify-between py-6 max-w-6xl mx-auto backdrop-blur-md sticky top-0 z-50">
               <div className="flex items-center gap-3 group cursor-pointer">
                 <div className="w-10 h-10 bg-gradient-to-br from-solana-green to-solana-purple rounded-xl flex items-center justify-center text-white font-black text-xl shadow-lg group-hover:rotate-12 transition-transform animate-float">
-                  S
+                  <img src="/src/assets/solmit.png"></img>
                 </div>
                 <div>
                   <h1 className="text-2xl font-black text-gradient tracking-tight">SolBridge</h1>
