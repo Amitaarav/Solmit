@@ -12,87 +12,206 @@ import { SendTokens } from './components/SendTokens';
 import { SignMessage } from './components/SignMessage';
 import { ActivityFeed } from './components/ActivityFeed';
 import { Swap } from './components/Swap';
-import { Toaster } from 'react-hot-toast';
+import { TokenLaunchpad } from './components/TokenLaunchpad';
 import { NetworkSwitcher, NETWORKS } from './components/NetworkSwitcher';
+import {
+  SendIcon,
+  AirdropIcon,
+  CoinsIcon,
+  SwapIcon,
+  ShieldIcon,
+  SolanaIcon,
+  ActivityIcon
+} from './components/Icons';
+import { Toaster } from 'react-hot-toast';
 
 const wallets = [];
 
 function App() {
   const [network, setNetwork] = useState(NETWORKS[0]);
+  const [activeTab, setActiveTab] = useState('transfer');
+
+  const tabs = [
+    { id: 'transfer', label: 'Transfer', icon: SendIcon },
+    { id: 'faucet', label: 'Faucet', icon: AirdropIcon },
+    { id: 'launchpad', label: 'Launchpad', icon: CoinsIcon },
+    { id: 'swap', label: 'Swap', icon: SwapIcon },
+    { id: 'security', label: 'Security', icon: ShieldIcon },
+  ];
 
   return (
     <ConnectionProvider endpoint={network.endpoint}>
       <WalletProvider wallets={wallets} autoConnect>
         <WalletModalProvider>
-          <div className="min-h-screen pb-20 px-4 md:px-8">
-            {/* Header / Nav */}
-            <nav className="flex items-center justify-between py-6 max-w-6xl mx-auto backdrop-blur-md sticky top-0 z-50">
-              <div className="flex items-center gap-3 group cursor-pointer">
-                <div className="w-10 h-10 bg-gradient-to-br from-solana-green to-solana-purple rounded-xl flex items-center justify-center text-white font-black text-xl shadow-lg group-hover:rotate-12 transition-transform animate-float">
-                  {/* <img src="/src/assets/solmit.png"></img> */}
-                 
+          <div className="min-h-screen flex flex-col justify-between text-slate-100 selection:bg-emerald-500/20 selection:text-emerald-300">
+            {/* Top Navigation */}
+            <header className="sticky top-0 z-50 backdrop-blur-xl bg-[#06070a]/80 border-b border-white/[0.06]">
+              <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-18 flex items-center justify-between gap-4">
+                {/* Brand */}
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl overflow-hidden bg-white/[0.04] border border-white/[0.1] flex items-center justify-center shadow-md">
+                    <img
+                      src="/src/assets/solmit.png"
+                      alt="SolMit"
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        e.target.style.display = 'none';
+                      }}
+                    />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-lg font-extrabold tracking-tight text-white">
+                        SolMit
+                      </span>
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                        Nexus
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-slate-400 hidden sm:block">
+                      Solana Asset & Protocol Hub
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <h1 className="text-2xl font-black text-gradient tracking-tight">SolMit</h1>
-                  <p className="text-[10px] text-text-dim uppercase tracking-widest font-bold opacity-70">Solana Nexus</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-6">
-                <NetworkSwitcher currentNetwork={network} onNetworkChange={setNetwork} />
-                <WalletMultiButton className="!bg-white/5 !border !border-white/10 !rounded-xl !h-12 hover:!bg-white/10 !transition-all !font-bold" />
-              </div>
-            </nav>
 
-            {/* Hero Section */}
-            <header className="max-w-4xl mx-auto text-center py-20 space-y-8 relative">
-              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-solana-purple/20 blur-[120px] rounded-full -z-10" />
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-xs font-bold mb-4" style={{ color: network.color }}>
-                <span className="relative flex h-2 w-2">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75" style={{ backgroundColor: network.color }}></span>
-                  <span className="relative inline-flex rounded-full h-2 w-2" style={{ backgroundColor: network.color }}></span>
-                </span>
-                Live on {network.name}
+                {/* Right controls: Network Switcher + Wallet */}
+                <div className="flex items-center gap-3 sm:gap-4">
+                  <NetworkSwitcher
+                    currentNetwork={network}
+                    onNetworkChange={setNetwork}
+                  />
+                  <WalletMultiButton />
+                </div>
               </div>
-              <h2 className="text-5xl md:text-7xl font-black leading-[1.1] tracking-tight text-white mb-6">
-                The Future of <br />
-                <span className="text-gradient">Seamless Solana</span>
-              </h2>
-              <p className="text-text-dim text-lg md:text-xl max-w-2xl mx-auto font-medium leading-relaxed">
-                Connect, Swap, and Track your assets across <span className="text-white font-bold">{network.name}</span> with
-                the most intuitive interface.
-              </p>
             </header>
 
-            {/* Main Grid */}
-            <main className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8 mt-4">
-              {/* Balance & Airdrop - Left Column */}
-              <div className="lg:col-span-5 space-y-8">
-                <ShowBalance />
-                <RequestAirDrop network={network} />
-                <ActivityFeed />
+            {/* Main Content Area */}
+            <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10 space-y-8">
+              {/* Workspace Navigation Tabs */}
+              <div className="flex items-center justify-between border-b border-white/[0.08] pb-4 gap-4 overflow-x-auto no-scrollbar">
+                <nav className="flex items-center gap-1.5 p-1 rounded-2xl bg-white/[0.03] border border-white/[0.06] backdrop-blur-md">
+                  {tabs.map((tab) => {
+                    const Icon = tab.icon;
+                    const isActive = activeTab === tab.id;
+                    return (
+                      <button
+                        key={tab.id}
+                        type="button"
+                        onClick={() => setActiveTab(tab.id)}
+                        className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all duration-150 select-none cursor-pointer ${
+                          isActive
+                            ? 'bg-white/[0.1] text-white shadow-sm border border-white/[0.12]'
+                            : 'text-slate-400 hover:text-slate-200 hover:bg-white/[0.04] border border-transparent'
+                        }`}
+                      >
+                        <Icon className={`w-4 h-4 ${isActive ? 'text-emerald-400' : 'text-slate-400'}`} />
+                        <span>{tab.label}</span>
+                      </button>
+                    );
+                  })}
+                </nav>
+
+                <div className="hidden lg:flex items-center gap-2 text-xs text-slate-400">
+                  <span className="flex h-2 w-2 relative">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-400"></span>
+                  </span>
+                  <span>Solana Cluster Connected</span>
+                </div>
               </div>
 
-              {/* Send & Sign - Right Column */}
-              <div className="lg:col-span-7 space-y-8">
-                {/* <Swap network={network} /> */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-1 gap-8">
-                  <SendTokens />
-                  <SignMessage />
+              {/* 2-Column Responsive Layout */}
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+                {/* Left Column: Overview Balance & Pulse Activity (5 cols) */}
+                <div className="lg:col-span-5 space-y-6">
+                  <ShowBalance
+                    network={network}
+                    onSelectTab={(tabId) => setActiveTab(tabId)}
+                  />
+                  <ActivityFeed network={network} />
+                </div>
+
+                {/* Right Column: Active Tool Workspace (7 cols) */}
+                <div className="lg:col-span-7">
+                  <div className="transition-all duration-200 ease-out">
+                    {activeTab === 'transfer' && (
+                      <SendTokens network={network} />
+                    )}
+
+                    {activeTab === 'faucet' && (
+                      <RequestAirDrop
+                        network={network}
+                        onSwitchToDevnet={() => setNetwork(NETWORKS[0])}
+                      />
+                    )}
+
+                    {activeTab === 'launchpad' && (
+                      <TokenLaunchpad network={network} />
+                    )}
+
+                    {activeTab === 'swap' && (
+                      <Swap
+                        network={network}
+                        onSwitchToMainnet={() => setNetwork(NETWORKS[1])}
+                      />
+                    )}
+
+                    {activeTab === 'security' && (
+                      <SignMessage />
+                    )}
+                  </div>
                 </div>
               </div>
             </main>
 
-            {/* Footer Status */}
-            <footer className="mt-20 pb-12 text-center text-text-dim text-sm border-t border-white/5 pt-8">
-              <div className="flex flex-col items-center gap-4">
-                <div className="flex items-center gap-4 px-4 py-2 bg-white/5 rounded-full border border-white/10">
-                  <div className="h-2 w-2 rounded-full animate-pulse" style={{ backgroundColor: network.color }} />
-                  <span className="text-xs font-bold tracking-widest uppercase">{network.name} Status: Operational</span>
+            {/* Footer */}
+            <footer className="border-t border-white/[0.06] bg-[#06070a] py-6 mt-16 text-xs text-slate-500">
+              <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left">
+                <div className="flex items-center gap-2.5">
+                  <SolanaIcon className="w-4 h-4 opacity-75" />
+                  <span>Powered by Solana Blockchain & Metaplex</span>
                 </div>
-                <p>© 2026 SolMit Nexus. All rights reserved.</p>
+
+                <div className="flex items-center gap-4">
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/[0.03] border border-white/[0.06] text-[11px] text-slate-400">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                    RPC: {network.name} Active
+                  </span>
+                  <span>© 2026 SolMit</span>
+                </div>
               </div>
             </footer>
-            <Toaster position="bottom-right" reverseOrder={false} />
+
+            {/* Refined Toast styling adhering to dark craft floor */}
+            <Toaster
+              position="bottom-right"
+              toastOptions={{
+                duration: 4000,
+                style: {
+                  background: '#0d0f18',
+                  color: '#f8fafc',
+                  border: '1px solid rgba(255, 255, 255, 0.1)',
+                  borderRadius: '14px',
+                  boxShadow: '0 12px 36px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.05)',
+                  fontSize: '13px',
+                  fontWeight: 500,
+                  padding: '12px 16px',
+                  maxWidth: '380px'
+                },
+                success: {
+                  iconTheme: {
+                    primary: '#10b981',
+                    secondary: '#06070a',
+                  },
+                },
+                error: {
+                  iconTheme: {
+                    primary: '#ef4444',
+                    secondary: '#06070a',
+                  },
+                },
+              }}
+            />
           </div>
         </WalletModalProvider>
       </WalletProvider>

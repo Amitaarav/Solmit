@@ -1,6 +1,15 @@
-import { LAMPORTS_PER_SOL, Transaction, SystemProgram, PublicKey } from "@solana/web3.js";
+import { LAMPORTS_PER_SOL, Transaction, SystemProgram, PublicKey, Keypair } from "@solana/web3.js";
 import { ed25519 } from "@noble/curves/ed25519";
-
+import { 
+  MINT_SIZE, 
+  TOKEN_PROGRAM_ID, 
+  createInitializeMint2Instruction, 
+  getAssociatedTokenAddressSync, 
+  createAssociatedTokenAccountInstruction, 
+  createMintToInstruction 
+} from "@solana/spl-token";
+import { createCreateMetadataAccountV3Instruction } from "@metaplex-foundation/mpl-token-metadata";
+import { Buffer } from "buffer";
 /**
  * Fetches the balance for a given public key
  * @param {Connection} connection 
@@ -100,4 +109,116 @@ export async function getTransactions(connection, publicKey, limit = 5) {
     console.error("Failed to fetch transactions:", error);
     return [];
   }
+}
+
+
+export async function createToken({connection, wallet, name, symbol, imageUrl, initialSupply}) {
+  if (!wallet.publicKey) throw new Error("Wallet not connected");
+
+  // Generate a new keypair for the token mint
+  const mintKeypair = Keypair.generate();
+
+  // Calculate the amount of lamports needed for rent exemption for the mint account
+  const lamports = await connection.getMinimumBalanceForRentExemption(MINT_SIZE);
+
+  // 1. Create the mint account
+  const createAccountInstruction = SystemProgram.createAccount({
+    fromPubkey: wallet.publicKey,
+    newAccountPubkey: mintKeypair.publicKey,
+    space: MINT_SIZE,
+    lamports,
+    programId: TOKEN_PROGRAM_ID,
+  });
+
+  // 2. Initialize the mint
+  const initializeMintInstruction = createInitializeMint2Instruction(
+    mintKeypair.publicKey,
+    9, // Default 9 decimals
+    wallet.publicKey, // Mint authority
+    wallet.publicKey, // Freeze authority
+    TOKEN_PROGRAM_ID
+  );
+
+  // 3. Find/Create Associated Token Account for user
+  const associatedToken = getAssociatedTokenAddressSync(
+    mintKeypair.publicKey,
+    wallet.publicKey,
+    false,
+    TOKEN_PROGRAM_ID
+  );
+
+  const createATAInstruction = createAssociatedTokenAccountInstruction(
+    wallet.publicKey, // Payer
+    associatedToken, // ATA
+    wallet.publicKey, // Owner
+    mintKeypair.publicKey, // Mint
+    TOKEN_PROGRAM_ID
+  );
+
+  // 4. Mint the initial supply
+  const mintToInstruction = createMintToInstruction(
+    mintKeypair.publicKey,
+    associatedToken,
+    wallet.publicKey,
+    initialSupply * Math.pow(10, 9), // amount (taking decimals into account)
+    [],
+    TOKEN_PROGRAM_ID
+  );
+
+  // 5. Create Metadata for the token
+  const metadataProgramId = new PublicKey("metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s");
+
+  const [metadataPDA] = PublicKey.findProgramAddressSync(
+    [
+      Buffer.from("metadata"),
+      metadataProgramId.toBuffer(),
+      mintKeypair.publicKey.toBuffer(),
+    ],
+    metadataProgramId
+  );
+
+  const metadataInstruction = createCreateMetadataAccountV3Instruction(
+    {
+      metadata: metadataPDA,
+      mint: mintKeypair.publicKey,
+      mintAuthority: wallet.publicKey,
+      payer: wallet.publicKey,
+      updateAuthority: wallet.publicKey,
+    },
+    {
+      createMetadataAccountArgsV3: {
+        data: {
+          name: name,
+          symbol: symbol,
+          uri: imageUrl, // Typically a link to a JSON that contains standard metadata but imageUrl can be a quick placeholder.
+          creators: null,
+          sellerFeeBasisPoints: 0,
+          uses: null,
+          collection: null,
+        },
+        isMutable: true,
+        collectionDetails: null,
+      },
+    }
+  );
+
+  // Combine instructions into a single transaction
+  const transaction = new Transaction().add(
+    createAccountInstruction,
+    initializeMintInstruction,
+    createATAInstruction,
+    mintToInstruction,
+    metadataInstruction
+  );
+
+  // Send the transaction. The new mintKeypair needs to sign too.
+  const signature = await wallet.sendTransaction(transaction, connection, {
+    signers: [mintKeypair],
+  });
+
+  await connection.confirmTransaction(signature);
+  return {
+    signature,
+    mintAddress: mintKeypair.publicKey.toBase58()
+  };
 }
